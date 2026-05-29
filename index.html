@@ -1,0 +1,835 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Team Batman</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg0: #070b11;
+      --bg1: #0d121a;
+      --panel: rgba(16, 20, 28, 0.94);
+      --panel-border: rgba(121, 149, 196, 0.18);
+      --accent: #d6b34b;
+      --accent2: #3fd2ff;
+      --text: #f4f7ff;
+      --muted: #97a3bb;
+    }
+
+    html, body {
+      margin: 0;
+      width: 100%;
+      min-height: 100%;
+      background: radial-gradient(circle at top, #151b27 0%, #0c1118 38%, #070b11 100%);
+      color: var(--text);
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      box-sizing: border-box;
+      padding: 10px;
+    }
+
+    .shell {
+      width: min(100%, 100vw);
+      min-height: calc(100vh - 20px);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .brand {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: 18px;
+      background: rgba(10, 14, 20, 0.88);
+      border: 1px solid rgba(255,255,255,0.08);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 16px 36px rgba(0,0,0,0.35);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .bat {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(145deg, #202b3a, #0d1117);
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03);
+      font-size: 22px;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: clamp(22px, 3vw, 34px);
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      line-height: 1;
+    }
+
+    .brand .tag {
+      margin-top: 2px;
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+    }
+
+    .brand-right {
+      text-align: right;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .layout {
+      flex: 1;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 300px;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .game-panel, .side-panel, .scores-panel, .join-panel {
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 18px;
+      box-shadow: 0 16px 36px rgba(0,0,0,0.34);
+      backdrop-filter: blur(10px);
+    }
+
+    .game-panel {
+      padding: 10px;
+      min-width: 0;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      aspect-ratio: 48 / 28;
+      max-height: calc(100vh - 170px);
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.05);
+      touch-action: none;
+      background: #0d1117;
+    }
+
+    .side-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 10px;
+      position: sticky;
+      top: 80px;
+      max-height: calc(100vh - 95px);
+      overflow: auto;
+    }
+
+    .section-title {
+      font-size: 14px;
+      font-weight: bold;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #f1f5ff;
+      margin-bottom: 8px;
+    }
+
+    .scores-panel { padding: 12px; }
+    .score-list { display: flex; flex-direction: column; gap: 8px; }
+    .score-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.05);
+      font-size: 14px;
+    }
+    .score-left {
+      display: flex; align-items: center; gap: 8px; min-width: 0; overflow: hidden;
+    }
+    .avatar-chip {
+      width: 22px; height: 22px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center;
+      background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.08); font-size: 14px; flex: 0 0 auto;
+    }
+    .name { font-weight: bold; letter-spacing: 0.12em; }
+    .badge {
+      font-size: 10px; padding: 2px 6px; border-radius: 999px; color: #fff; flex: 0 0 auto;
+    }
+    .badge.you { background: #2f7cff; }
+    .badge.ai { background: #7b5cff; }
+
+    .join-panel { padding: 12px; }
+    .join-panel button, .join-panel input, .modal button, .touch-pad button {
+      border: 0; border-radius: 12px; font: inherit;
+    }
+    .join-panel input, .modal input {
+      width: 100%; box-sizing: border-box; margin-top: 8px; padding: 12px 14px; background: #0c1118; color: #fff;
+      border: 1px solid rgba(255,255,255,0.12); outline: none; text-align: center; text-transform: uppercase;
+      letter-spacing: 0.35em; font-size: 18px; font-weight: bold;
+    }
+    .join-panel button, .modal button {
+      margin-top: 8px; margin-right: 8px; padding: 10px 14px; background: linear-gradient(135deg, #2f7cff, #4d92ff);
+      color: white; cursor: pointer; font-weight: bold;
+    }
+    .join-panel button:hover, .modal button:hover { filter: brightness(1.08); }
+
+    .qr {
+      width: 104px;
+      min-height: 104px;
+      margin-top: 10px;
+      padding: 8px;
+      border-radius: 12px;
+      background: #fff;
+      display: inline-block;
+    }
+
+    .small {
+      margin-top: 8px;
+      font-size: 12px;
+      line-height: 1.45;
+      color: var(--muted);
+      word-break: break-word;
+    }
+    .status {
+      margin-top: 8px;
+      font-size: 13px;
+      line-height: 1.45;
+      color: #a9b4c8;
+    }
+    .info-box {
+      padding: 12px;
+      font-size: 13px;
+      line-height: 1.5;
+      color: #b8c2d7;
+    }
+    .hint-inline { color: #d9e0f1; font-weight: bold; }
+
+    .touch-pad {
+      margin-top: 10px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      justify-items: center;
+    }
+    .touch-pad button {
+      width: 64px; height: 64px; background: #1f2a3d; color: #fff; font-size: 20px; touch-action: manipulation; cursor: pointer;
+    }
+    .touch-pad button:active { transform: scale(0.97); background: #2e3d59; }
+    .blank { visibility: hidden; }
+
+    .modal-backdrop {
+      position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.74); padding: 16px;
+    }
+    .modal {
+      width: min(92vw, 430px); padding: 18px; border-radius: 18px; background: #151b26;
+      border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 24px 50px rgba(0,0,0,0.46); text-align: left;
+    }
+    .modal h2 { margin: 0 0 8px; font-size: 22px; }
+    .modal .error {
+      min-height: 20px; margin-top: 8px; font-size: 13px; color: #ff9393;
+    }
+    .modal .help {
+      font-size: 13px; line-height: 1.5; color: #b8c2d7; margin-top: 8px;
+    }
+    .hidden { display: none !important; }
+
+    @media (max-width: 1024px) {
+      .layout { grid-template-columns: 1fr; }
+      .side-panel { position: static; max-height: none; }
+      canvas { max-height: none; }
+    }
+  </style>
+</head>
+<body>
+  <div id="joinModal" class="modal-backdrop">
+    <div class="modal">
+      <h2>Join Team Batman</h2>
+      <div class="help" id="roomInfo">Create a room or open the invite link, then enter your 4-letter name.</div>
+      <input id="playerName" placeholder="ABCD" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" />
+      <div class="error" id="modalError"></div>
+      <button id="joinBtn">Join</button>
+      <button id="cancelBtn" type="button">Cancel</button>
+    </div>
+  </div>
+
+  <div class="shell">
+    <header class="brand">
+      <div class="logo">
+        <div class="bat">🦇</div>
+        <div>
+          <h1>Team Batman</h1>
+          <div class="tag">Snake Arena</div>
+        </div>
+      </div>
+      <div class="brand-right">
+        <div id="roomLabel">Room: -</div>
+        <div id="status">Waiting for a player to join.</div>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="game-panel">
+        <canvas id="game" width="1440" height="840"></canvas>
+      </section>
+
+      <aside class="side-panel">
+        <section class="scores-panel">
+          <div class="section-title">Live scoreboard</div>
+          <div class="score-list" id="scoreList"></div>
+        </section>
+
+        <section class="join-panel">
+          <div class="section-title">Invite</div>
+          <div>
+            <button id="createRoomBtn">Create Room</button>
+            <button id="copyLinkBtn">Copy Link</button>
+          </div>
+          <div id="qr" class="qr"></div>
+          <div class="small" id="inviteLink">Create a room to show the QR code and invite link.</div>
+        </section>
+
+        <section class="join-panel">
+          <div class="section-title">Touch controls</div>
+          <div class="touch-pad" id="touchPad">
+            <div class="blank">.</div>
+            <button data-dir="up">▲</button>
+            <div class="blank">.</div>
+            <button data-dir="left">◀</button>
+            <button data-dir="down">▼</button>
+            <button data-dir="right">▶</button>
+          </div>
+          <div class="small">Mobile: tap arrows or swipe anywhere on the board.</div>
+        </section>
+
+        <section class="info-box">
+          <div><span class="hint-inline">Laptop:</span> use Arrow keys or WASD.</div>
+          <div style="margin-top:8px;">One portal can teleport a snake to the other side of the board. Poison mushrooms shrink a snake back to its starting length.</div>
+        </section>
+      </aside>
+    </main>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+
+    const roomLabel = document.getElementById('roomLabel');
+    const statusEl = document.getElementById('status');
+    const playerNameInput = document.getElementById('playerName');
+    const joinBtn = document.getElementById('joinBtn');
+    const cancelBtn = document.getElementById('cancelBtn');
+    const joinModal = document.getElementById('joinModal');
+    const roomInfo = document.getElementById('roomInfo');
+    const modalError = document.getElementById('modalError');
+    const createRoomBtn = document.getElementById('createRoomBtn');
+    const copyLinkBtn = document.getElementById('copyLinkBtn');
+    const qrEl = document.getElementById('qr');
+    const inviteLinkEl = document.getElementById('inviteLink');
+    const scoreList = document.getElementById('scoreList');
+    const touchPad = document.getElementById('touchPad');
+
+    const cols = 48;
+    const rows = 28;
+
+    let ws = null;
+    let roomId = new URLSearchParams(location.search).get('room');
+    let mySnakeId = null;
+    let state = null;
+    let baseUrl = location.origin;
+    let qr = null;
+    let swipeStart = null;
+
+    const avatarStyle = 'bold 15px "Apple Color Emoji", "Segoe UI Emoji", sans-serif';
+    const labelStyle = 'bold 18px Arial';
+
+    function roundRectPath(x, y, w, h, r) {
+      const radius = Math.min(r, w / 2, h / 2);
+      ctx.beginPath();
+      ctx.moveTo(x + radius, y);
+      ctx.arcTo(x + w, y, x + w, y + h, radius);
+      ctx.arcTo(x + w, y + h, x, y + h, radius);
+      ctx.arcTo(x, y + h, x, y, radius);
+      ctx.arcTo(x, y, x + w, y, radius);
+      ctx.closePath();
+    }
+
+    function cellW() { return canvas.width / cols; }
+    function cellH() { return canvas.height / rows; }
+
+    function rectForCell(x, y, inset = 0) {
+      return {
+        x: x * cellW() + inset,
+        y: y * cellH() + inset,
+        w: cellW() - inset * 2,
+        h: cellH() - inset * 2,
+      };
+    }
+
+    function drawBackground() {
+      const w = canvas.width;
+      const h = canvas.height;
+      const grd = ctx.createLinearGradient(0, 0, 0, h);
+      grd.addColorStop(0, '#121824');
+      grd.addColorStop(1, '#070b11');
+      ctx.fillStyle = grd;
+      ctx.fillRect(0, 0, w, h);
+
+      ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+      ctx.lineWidth = 1;
+      for (let x = 0; x <= cols; x++) {
+        ctx.beginPath();
+        ctx.moveTo(x * cellW(), 0);
+        ctx.lineTo(x * cellW(), h);
+        ctx.stroke();
+      }
+      for (let y = 0; y <= rows; y++) {
+        ctx.beginPath();
+        ctx.moveTo(0, y * cellH());
+        ctx.lineTo(w, y * cellH());
+        ctx.stroke();
+      }
+    }
+
+    function drawGoldBlock(food) {
+      const r = rectForCell(food.x, food.y, 6);
+      const cx = r.x + r.w / 2;
+      const cy = r.y + r.h / 2;
+      const radius = Math.min(r.w, r.h) * 0.22;
+
+      ctx.save();
+      ctx.shadowColor = 'rgba(214,179,75,0.75)';
+      ctx.shadowBlur = 18;
+      ctx.fillStyle = '#d6b34b';
+      if (ctx.roundRect) {
+        ctx.beginPath();
+        ctx.roundRect(r.x, r.y, r.w, r.h, 10);
+        ctx.fill();
+      } else {
+        roundRectPath(r.x, r.y, r.w, r.h, 10);
+        ctx.fill();
+      }
+
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = '#1a1d26';
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - radius);
+      ctx.lineTo(cx + radius * 0.75, cy);
+      ctx.lineTo(cx, cy + radius);
+      ctx.lineTo(cx - radius * 0.75, cy);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawMushroom(cell) {
+      const r = rectForCell(cell.x, cell.y, 6);
+      const cx = r.x + r.w / 2;
+      const cy = r.y + r.h / 2;
+
+      ctx.save();
+      ctx.shadowColor = 'rgba(128, 255, 128, 0.65)';
+      ctx.shadowBlur = 10;
+      ctx.fillStyle = '#8dff6a';
+      ctx.beginPath();
+      ctx.arc(cx, cy - 3, Math.min(r.w, r.h) * 0.18, Math.PI, 0);
+      ctx.fill();
+
+      ctx.fillStyle = '#7b3f98';
+      if (ctx.roundRect) {
+        ctx.beginPath();
+        ctx.roundRect(cx - 4, cy - 2, 8, 12, 3);
+        ctx.fill();
+      } else {
+        roundRectPath(cx - 4, cy - 2, 8, 12, 3);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    function drawTunnel(tunnel) {
+      const e = rectForCell(tunnel.entry.x, tunnel.entry.y, 5);
+      const x = e.x + e.w / 2;
+      const y = e.y + e.h / 2;
+      ctx.save();
+      ctx.strokeStyle = 'rgba(63,210,255,0.85)';
+      ctx.lineWidth = 3;
+      ctx.shadowColor = ctx.strokeStyle;
+      ctx.shadowBlur = 14;
+      ctx.beginPath();
+      ctx.arc(x, y, Math.min(e.w, e.h) * 0.25, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+
+      const ex = rectForCell(tunnel.exit.x, tunnel.exit.y, 5);
+      const cx = ex.x + ex.w / 2;
+      const cy = ex.y + ex.h / 2;
+      ctx.save();
+      ctx.strokeStyle = 'rgba(214,179,75,0.85)';
+      ctx.lineWidth = 3;
+      ctx.shadowColor = ctx.strokeStyle;
+      ctx.shadowBlur = 14;
+      ctx.beginPath();
+      ctx.arc(cx, cy, Math.min(ex.w, ex.h) * 0.25, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawSnakeSegment(seg, snake, index) {
+      const r = rectForCell(seg.x, seg.y, 3);
+      const isHead = index === 0;
+      const accent = snake.color || '#7CFF6B';
+
+      ctx.save();
+      ctx.shadowColor = isHead ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.35)';
+      ctx.shadowBlur = isHead ? 10 : 4;
+
+      const grad = ctx.createLinearGradient(r.x, r.y, r.x + r.w, r.y + r.h);
+      grad.addColorStop(0, isHead ? '#2c3440' : '#15202b');
+      grad.addColorStop(1, '#05070a');
+      ctx.fillStyle = grad;
+      if (ctx.roundRect) {
+        ctx.beginPath();
+        ctx.roundRect(r.x, r.y, r.w, r.h, 8);
+        ctx.fill();
+      } else {
+        roundRectPath(r.x, r.y, r.w, r.h, 8);
+        ctx.fill();
+      }
+
+      ctx.fillStyle = accent;
+      ctx.globalAlpha = isHead ? 0.95 : 0.55;
+      ctx.fillRect(r.x + r.w * 0.18, r.y + r.h * 0.20, r.w * 0.64, r.h * 0.12);
+      ctx.fillRect(r.x + r.w * 0.22, r.y + r.h * 0.68, r.w * 0.56, r.h * 0.10);
+
+      if (isHead) {
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = '#f3d36b';
+        ctx.fillRect(r.x + r.w * 0.12, r.y + r.h * 0.18, r.w * 0.10, r.h * 0.10);
+        ctx.fillRect(r.x + r.w * 0.78, r.y + r.h * 0.18, r.w * 0.10, r.h * 0.10);
+      }
+
+      ctx.restore();
+    }
+
+    function drawSnake(snake) {
+      snake.body.forEach((seg, index) => drawSnakeSegment(seg, snake, index));
+
+      const head = snake.body[0];
+      const r = rectForCell(head.x, head.y, 3);
+      const cx = r.x + r.w / 2;
+      const cy = r.y - 7;
+
+      ctx.save();
+      ctx.font = avatarStyle;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#fff';
+      ctx.shadowColor = 'rgba(0,0,0,0.6)';
+      ctx.shadowBlur = 3;
+      ctx.fillText(snake.avatar || '🦇', cx, cy);
+      ctx.restore();
+
+      ctx.save();
+      ctx.font = labelStyle;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+      ctx.fillStyle = '#f5f7ff';
+      ctx.shadowColor = 'rgba(0,0,0,0.8)';
+      ctx.shadowBlur = 6;
+      ctx.fillText(snake.name, cx, cy - 12);
+      ctx.restore();
+    }
+
+    function renderScores() {
+      if (!state) return;
+
+      const sorted = [...state.snakes].sort((a, b) => b.score - a.score);
+      scoreList.innerHTML = '';
+
+      sorted.forEach((s) => {
+        const row = document.createElement('div');
+        row.className = 'score-row';
+
+        const left = document.createElement('div');
+        left.className = 'score-left';
+
+        const avatar = document.createElement('span');
+        avatar.className = 'avatar-chip';
+        avatar.textContent = s.avatar || '🦇';
+
+        const name = document.createElement('span');
+        name.className = 'name';
+        name.textContent = s.name;
+
+        left.appendChild(avatar);
+        left.appendChild(name);
+
+        const right = document.createElement('div');
+        right.style.display = 'flex';
+        right.style.alignItems = 'center';
+        right.style.gap = '6px';
+
+        if (s.id === mySnakeId) {
+          const badge = document.createElement('span');
+          badge.className = 'badge you';
+          badge.textContent = 'YOU';
+          right.appendChild(badge);
+        }
+        if (s.ai) {
+          const badge = document.createElement('span');
+          badge.className = 'badge ai';
+          badge.textContent = 'AI';
+          right.appendChild(badge);
+        }
+
+        const score = document.createElement('strong');
+        score.textContent = s.score;
+        right.appendChild(score);
+
+        row.appendChild(left);
+        row.appendChild(right);
+        scoreList.appendChild(row);
+      });
+
+      const leader = sorted[0];
+      const me = state.snakes.find((s) => s.id === mySnakeId);
+      if (me && leader) {
+        statusEl.textContent = leader.id === me.id ? `You are leading. Score ${me.score}.` : `Leader: ${leader.name} (${leader.score}).`;
+      }
+    }
+
+    function draw() {
+      drawBackground();
+      if (!state) return;
+
+      if (state.tunnel) drawTunnel(state.tunnel);
+      state.mushrooms.forEach(drawMushroom);
+      drawGoldBlock(state.food);
+      state.snakes.forEach(drawSnake);
+    }
+
+    function setDirection(dir) {
+      if (!ws || ws.readyState !== WebSocket.OPEN) return;
+      ws.send(JSON.stringify({ type: 'dir', dir }));
+    }
+
+    function dirFromKey(key) {
+      if (key === 'arrowup' || key === 'w') return { x: 0, y: -1 };
+      if (key === 'arrowdown' || key === 's') return { x: 0, y: 1 };
+      if (key === 'arrowleft' || key === 'a') return { x: -1, y: 0 };
+      if (key === 'arrowright' || key === 'd') return { x: 1, y: 0 };
+      return null;
+    }
+
+    function connect(name) {
+      const clean = (name || '').toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4);
+      const targetRoom = roomId ? roomId.toUpperCase() : '';
+      const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${proto}//${location.host}/?room=${encodeURIComponent(targetRoom)}&name=${encodeURIComponent(clean)}`;
+
+      ws = new WebSocket(wsUrl);
+
+      ws.onopen = () => {
+        statusEl.textContent = 'Connected.';
+      };
+
+      ws.onclose = () => {
+        statusEl.textContent = 'Disconnected.';
+      };
+
+      ws.onerror = () => {
+        statusEl.textContent = 'Connection error.';
+      };
+
+      ws.onmessage = (event) => {
+        const msg = JSON.parse(event.data);
+
+        if (msg.type === 'error') {
+          modalError.textContent = msg.message || 'Invalid name.';
+          return;
+        }
+
+        if (msg.type === 'hello') {
+          mySnakeId = msg.snakeId;
+          roomId = msg.roomId;
+          roomLabel.textContent = `Room: ${roomId}`;
+
+          const invite = `${baseUrl}/?room=${roomId}`;
+          inviteLinkEl.textContent = invite;
+          buildQr(invite);
+
+          const url = new URL(location.href);
+          url.searchParams.set('room', roomId);
+          history.replaceState({}, '', url.toString());
+          return;
+        }
+
+        if (msg.type === 'state') {
+          state = msg;
+          renderScores();
+          draw();
+        }
+      };
+    }
+
+    function buildQr(text) {
+      qrEl.innerHTML = '';
+      qr = new QRCode(qrEl, {
+        text,
+        width: 104,
+        height: 104,
+        colorDark: '#111111',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.M,
+      });
+    }
+
+    async function loadConfig() {
+      try {
+        const cfg = await fetch('/api/config').then((r) => r.json());
+        baseUrl = cfg.baseUrl || baseUrl;
+        roomInfo.textContent = cfg.roomHint || 'Enter your 4-letter name to join.';
+      } catch {
+        // Keep defaults.
+      }
+    }
+
+    function openJoinModal() {
+      modalError.textContent = '';
+      joinModal.classList.remove('hidden');
+      playerNameInput.value = '';
+      setTimeout(() => playerNameInput.focus(), 50);
+    }
+
+    function closeJoinModal() {
+      joinModal.classList.add('hidden');
+    }
+
+    function validateName(name) {
+      const clean = String(name || '').toUpperCase().replace(/[^A-Z]/g, '');
+      if (!/^[A-Z]{4}$/.test(clean)) return null;
+      return clean;
+    }
+
+    async function createRoom() {
+      const res = await fetch('/api/new-room');
+      const data = await res.json();
+      roomId = data.roomId;
+      roomLabel.textContent = `Room: ${roomId}`;
+      const invite = `${baseUrl}/?room=${roomId}`;
+      inviteLinkEl.textContent = invite;
+      buildQr(invite);
+
+      const url = new URL(location.href);
+      url.searchParams.set('room', roomId);
+      history.replaceState({}, '', url.toString());
+      openJoinModal();
+    }
+
+    createRoomBtn.addEventListener('click', async () => {
+      await createRoom();
+    });
+
+    copyLinkBtn.addEventListener('click', async () => {
+      const text = inviteLinkEl.textContent.trim();
+      if (!text || text.startsWith('Create a room')) return;
+      try {
+        await navigator.clipboard.writeText(text);
+        statusEl.textContent = 'Invite link copied.';
+      } catch {
+        statusEl.textContent = 'Could not copy link.';
+      }
+    });
+
+    joinBtn.addEventListener('click', () => {
+      const name = validateName(playerNameInput.value);
+      if (!name) {
+        modalError.textContent = 'Name must be exactly 4 letters A-Z.';
+        return;
+      }
+
+      closeJoinModal();
+      if (ws) ws.close();
+      connect(name);
+    });
+
+    cancelBtn.addEventListener('click', () => {
+      closeJoinModal();
+    });
+
+    playerNameInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') joinBtn.click();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      const dir = dirFromKey(e.key.toLowerCase());
+      if (dir) {
+        e.preventDefault();
+        setDirection(dir);
+      }
+    });
+
+    touchPad.addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-dir]');
+      if (!btn) return;
+      const dirName = btn.dataset.dir;
+      if (dirName === 'up') setDirection({ x: 0, y: -1 });
+      if (dirName === 'down') setDirection({ x: 0, y: 1 });
+      if (dirName === 'left') setDirection({ x: -1, y: 0 });
+      if (dirName === 'right') setDirection({ x: 1, y: 0 });
+    });
+
+    canvas.addEventListener('touchstart', (e) => {
+      const t = e.changedTouches[0];
+      swipeStart = { x: t.clientX, y: t.clientY };
+    }, { passive: true });
+
+    canvas.addEventListener('touchend', (e) => {
+      if (!swipeStart) return;
+      const t = e.changedTouches[0];
+      const dx = t.clientX - swipeStart.x;
+      const dy = t.clientY - swipeStart.y;
+      swipeStart = null;
+
+      if (Math.abs(dx) < 24 && Math.abs(dy) < 24) return;
+      if (Math.abs(dx) > Math.abs(dy)) {
+        setDirection(dx > 0 ? { x: 1, y: 0 } : { x: -1, y: 0 });
+      } else {
+        setDirection(dy > 0 ? { x: 0, y: 1 } : { x: 0, y: -1 });
+      }
+    }, { passive: true });
+
+    (async function boot() {
+      await loadConfig();
+
+      if (roomId) {
+        roomLabel.textContent = `Room: ${roomId.toUpperCase()}`;
+        const invite = `${baseUrl}/?room=${roomId.toUpperCase()}`;
+        inviteLinkEl.textContent = invite;
+        buildQr(invite);
+      }
+
+      openJoinModal();
+    })();
+  </script>
+</body>
+</html>

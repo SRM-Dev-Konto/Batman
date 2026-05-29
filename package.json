@@ -1,0 +1,25 @@
+{
+  "name": "team-batman-snake",
+  "version": "1.0.0",
+  "private": true,
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "ws": "^8.21.0"
+  },
+  "description": "```bash npm install node server.js ```",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SRM-Dev-Konto/Batman.git"
+  },
+  "bugs": {
+    "url": "https://github.com/SRM-Dev-Konto/Batman/issues"
+  },
+  "homepage": "https://github.com/SRM-Dev-Konto/Batman#readme"
+}

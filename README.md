@@ -16,7 +16,7 @@ Open the local URL on your laptop, create a room, and scan the QR code from anot
 
 ## Notes
 
-- Every player enters a 4-letter name.
+- Every player enters a 5-letter name.
 - Each connection creates a new snake.
 - The scoreboard updates live.
 - One tunnel pair is present on the board.

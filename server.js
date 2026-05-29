@@ -46,12 +46,12 @@ function legalDir(current, next) {
 }
 
 function normalizeName(input) {
-  const lettersOnly = String(input || '')
-    .toUpperCase()
-    .replace(/[^A-Z]/g, '');
+  const letters = Array.from(String(input || '').trim())
+    .filter((ch) => /\p{L}/u.test(ch))
+    .slice(0, 5);
 
-  if (/^[A-Z]{4}$/.test(lettersOnly)) return lettersOnly;
-  return null;
+  if (letters.length !== 5) return null;
+  return letters.join('');
 }
 
 function snakeColor(index) {
@@ -180,6 +180,49 @@ function spawnFood(room) {
   });
 }
 
+function spawnPoliceCar(room) {
+  room.policeCar = {
+    x: -4,
+    y: Math.floor(Math.random() * ROWS),
+    width: 4,
+    speed: 1,
+    flash: 0,
+  };
+}
+
+function policeCells(police) {
+  if (!police) return [];
+  const cells = [];
+  for (let i = 0; i < police.width; i++) {
+    const cell = { x: police.x + i, y: police.y };
+    if (inBounds(cell)) cells.push(cell);
+  }
+  return cells;
+}
+
+function touchesPolice(room, snake, head) {
+  if (!room.policeCar) return false;
+  return policeCells(room.policeCar).some(
+    (cell) => same(cell, head) || snake.body.some((seg) => same(seg, cell))
+  );
+}
+
+function updatePolice(room) {
+  if (!room.policeCar) {
+    room.policeCooldown -= 1;
+    if (room.policeCooldown <= 0) spawnPoliceCar(room);
+    return;
+  }
+
+  room.policeCar.x += room.policeCar.speed;
+  room.policeCar.flash = (room.policeCar.flash + 1) % 8;
+
+  if (room.policeCar.x > COLS + 2) {
+    room.policeCar = null;
+    room.policeCooldown = 10 + Math.floor(Math.random() * 42);
+  }
+}
+
 function createRoom(roomId = rid()) {
   const room = {
     id: roomId,
@@ -188,11 +231,13 @@ function createRoom(roomId = rid()) {
     food: { x: 0, y: 0 },
     mushrooms: [],
     tunnel: null,
+    policeCar: null,
+    policeCooldown: 12 + Math.floor(Math.random() * 36),
   };
 
   const aiSnake = createSnake(
     'AI',
-    'BYTE',
+    'AI',
     '#6bb7ff',
     [
       { x: 24, y: 14 },
@@ -421,6 +466,8 @@ function removeMushroom(room, index) {
 function tickRoom(room) {
   if (!room.snakes.length) return;
 
+  updatePolice(room);
+
   const moves = new Map();
 
   room.snakes.forEach((snake) => {
@@ -476,7 +523,9 @@ function tickRoom(room) {
 
     const hitOtherBody = occupied.has(key(head)) && occupied.get(key(head)) !== id;
     const hitSelf = snake.body.slice(0, snake.body.length - (move.grow ? 0 : 1)).some((seg) => same(seg, head));
-    if (hitOtherBody || hitSelf) respawnIds.add(id);
+    const hitPolice = touchesPolice(room, snake, head);
+
+    if (hitOtherBody || hitSelf || hitPolice) respawnIds.add(id);
   });
 
   headMap.forEach((ids) => {
@@ -504,7 +553,7 @@ function tickRoom(room) {
 
   respawnIds.forEach((id) => {
     const snake = room.snakes.find((s) => s.id === id);
-    if (snake) respawnSnake(room, snake, true);
+    if (snake) respawnSnake(room, snake, false);
   });
 
   if (room.snakes.some((s) => same(s.body[0], room.food))) {
@@ -521,6 +570,7 @@ function broadcast(room) {
     food: room.food,
     tunnel: room.tunnel,
     mushrooms: room.mushrooms,
+    policeCar: room.policeCar,
     snakes: room.snakes.map((s) => ({
       id: s.id,
       name: s.name,
@@ -544,7 +594,7 @@ const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
     res.end(JSON.stringify({
       baseUrl: `http://${LAN_IP}:${PORT}`,
-      roomHint: 'Enter your 4-letter name to join the game.',
+      roomHint: 'Enter your 5-letter name to join the game.',
       cols: COLS,
       rows: ROWS,
     }));
@@ -578,7 +628,7 @@ wss.on('connection', (ws, req) => {
   const playerName = normalizeName(rawName);
 
   if (!playerName) {
-    ws.send(JSON.stringify({ type: 'error', message: 'Name must be exactly 4 letters A-Z.' }));
+    ws.send(JSON.stringify({ type: 'error', message: 'Name must be exactly 5 letters.' }));
     ws.close(1008, 'invalid name');
     return;
   }
